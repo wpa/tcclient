@@ -1,0 +1,321 @@
+#!/bin/sh
+# Just a simple handwritten configure
+
+host=''
+prefix=''
+args="$@"
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+  --host=*) host="`echo "$1" | sed -e 's/--host=//'`";;
+  --prefix=*) prefix="`echo "$1" | sed -e 's/--prefix=//'`";;
+  *)
+    echo 'Available options:'
+    echo '--host=...    = Specify the host triplet to build for'
+    echo '--prefix=...  = Specify the prefix to install to'
+    exit;;
+  esac
+  shift
+done
+rm -f config.mk
+true > config.h
+echo "# Generated with: $0 $args" > config.mk
+if [ -n "$prefix" ]; then echo "PREFIX=${prefix}" >> config.mk; fi
+
+printf 'Checking for a C compiler... '
+if [ "x$CC" = "x" -a "x$host" != "x" ]; then
+  if which "${host}-gcc" > /dev/null 2> /dev/null; then CC="${host}-gcc"
+  elif which "${host}-clang" > /dev/null 2> /dev/null; then CC="${host}-clang"
+  elif which "${host}-cc" > /dev/null 2> /dev/null; then CC="${host}-cc"
+  fi
+fi
+if [ "x$CC" = "x" ]; then
+  if which gcc > /dev/null 2> /dev/null; then CC=gcc
+  elif which clang > /dev/null 2> /dev/null; then CC=clang
+  elif which cc > /dev/null 2> /dev/null; then CC=cc
+  fi
+fi
+if [ "x$CC" = "x" ]; then echo "None found"; exit 1; fi
+echo "$CC"
+echo "CC=$CC" >> config.mk
+
+printf 'Checking if we need -liconv for iconv... '
+echo '#include <iconv.h>' > iconvtest.c
+echo 'int main(){iconv_t x=iconv_open("a","b");return 0;}' >> iconvtest.c
+if ! "$CC" iconvtest.c -o iconvtest > /dev/null 2> /dev/null; then
+  echo 'LIBS+=-liconv' >> config.mk
+  echo yes
+else
+  echo no
+fi
+rm -f iconvtest iconvtest.c
+
+testbuild()
+{
+  printf "Checking for ${1}... "
+  code="$2"
+  headers="$3"
+  libs="$4"
+  rm -f apitest.c
+  for x in ${headers}; do
+    echo "#include <${x}>" >> apitest.c
+  done
+  echo "int main(){${code}}" >> apitest.c
+  if "$CC" apitest.c ${libs} -o apitest > /dev/null 2> /dev/null; then
+    echo yes
+    rm -f apitest.c apitest
+    return 0
+  else
+    echo no
+    rm -f apitest.c
+    return 1
+  fi
+}
+
+testpkgconfig()
+{
+  pkgname="$1"
+  varprefix="$2"
+  printf "Checking for ${pkgname}... "
+  testlibs="`pkg-config --libs "$pkgname" 2> /dev/null`"
+  if [ "x$testlibs" != "x" ]; then
+    echo "${varprefix}_LIBS=${testlibs}" >> config.mk
+    echo "${varprefix}_CFLAGS=`pkg-config --cflags "$pkgname"`" >> config.mk
+    echo "HAVE_${varprefix}=1" >> config.mk
+    echo yes
+    return 0
+  else
+    echo no
+    return 1
+  fi
+}
+
+if ! testbuild 'strndup' 'char* x=strndup("abc", 2);' 'string.h'; then
+  echo '#define NO_STRNDUP 1' >> config.h
+fi
+
+if ! testbuild 'dprintf' 'dprintf(1,"test");' 'stdio.h'; then
+  echo '#define NO_DPRINTF 1' >> config.h
+fi
+
+if ! uname -s | grep -q MSYS; then # Skip all the GUI stuff when building on msys
+
+if ! testpkgconfig 'gtk+-3.0' GTK; then
+  testpkgconfig 'gtk+-2.0' GTK
+fi
+
+printf 'Checking for libavcodec... '
+avcodeclibs="`pkg-config --libs libavcodec 2> /dev/null`"
+if [ "x$avcodeclibs" != "x" ]; then
+  echo yes
+  avcodecflags="${avcodeclibs} `pkg-config --cflags libavcodec`"
+  # AV_CODEC_ID_FLV1
+  if ! testbuild 'AV_CODEC_ID_FLV1' 'int x=AV_CODEC_ID_FLV1;' 'libavcodec/avcodec.h' "$avcodecflags"; then
+    if testbuild 'CODEC_ID_FLV1' 'int x=CODEC_ID_FLV1;' 'libavcodec/avcodec.h' "$avcodecflags"; then
+      echo '#define AV_CODEC_ID_FLV1 CODEC_ID_FLV1' >> config.h
+      echo '#define AV_CODEC_ID_NELLYMOSER CODEC_ID_NELLYMOSER' >> config.h
+    else avcodeclibs=''; fi
+  fi
+  # av_packet_unref
+  if ! testbuild 'av_packet_unref' 'void* x=av_packet_unref;' 'libavcodec/avcodec.h' "$avcodecflags"; then
+    if testbuild 'av_free_packet' 'void* x=av_free_packet;' 'libavcodec/avcodec.h' "$avcodecflags"; then
+      echo '#define av_packet_unref av_free_packet' >> config.h
+    else avcodeclibs=''; fi
+  fi
+  if [ "x$avcodeclibs" != "x" ]; then
+    echo "AVCODEC_LIBS=${avcodeclibs}" >> config.mk
+    echo "AVCODEC_CFLAGS=`pkg-config --cflags libavcodec`" >> config.mk
+    if ! testbuild 'avcodec_free_context' 'void* x=avcodec_free_context;' 'libavcodec/avcodec.h' "$avcodecflags"; then
+      echo '#include <libavutil/mem.h>' >> config.h
+      echo '#define avcodec_free_context(x) \' >> config.h
+      echo '{ \' >> config.h
+      echo '  avcodec_close(*x); \' >> config.h
+      echo '  av_freep(&(*x)->extradata); \' >> config.h
+      echo '  av_freep(&(*x)->subtitle_header); \' >> config.h
+      echo '  av_freep(x); \' >> config.h
+      echo '}' >> config.h
+    fi
+    if testbuild 'buf in AVPacket' 'AVPacket x; x.buf=0;' 'libavcodec/avcodec.h' "$avcodecflags"; then echo '#define AVPACKET_HAS_BUF 1' >> config.h; fi
+    if ! testbuild 'avcodec_send_packet and avcodec_receive_frame' 'void* x=avcodec_send_packet; x=avcodec_receive_frame;' 'libavcodec/avcodec.h' "$avcodecflags"; then echo '#define AVCODEC_NO_SEND_RECEIVE_API 1' >> config.h; fi
+  fi
+else
+  echo no
+fi
+
+testpkgconfig libswscale SWSCALE
+if testpkgconfig libavformat AVFORMAT && ! testbuild 'avcodec_parameters_to_context' 'void* x=avcodec_parameters_to_context;' 'libavcodec/avcodec.h' "$avcodecflags"; then
+  echo '#define codecpar codec' >> config.h
+  echo '#define avcodec_parameters_to_context(a, b) avcodec_free_context(&a); a=b' >> config.h
+fi
+
+printf 'Checking for libavutil... '
+avutillibs="`pkg-config --libs libavutil 2> /dev/null`"
+if [ "x$avutillibs" != "x" ]; then
+  echo yes
+  avutilflags="${avutillibs} `pkg-config --cflags libavutil`"
+  # AV_PIX_FMT_RGB24 and AV_PIX_FMT_YUV420P
+  if ! testbuild 'AV_PIX_FMT_RGB24 and AV_PIX_FMT_YUV420P' 'int x=AV_PIX_FMT_RGB24; x=AV_PIX_FMT_YUV420P;' 'libavutil/pixfmt.h' "$avutilflags"; then
+    if testbuild 'PIX_FMT_RGB24 and PIX_FMT_YUV420P' 'int x=PIX_FMT_RGB24; x=PIX_FMT_YUV420P;' 'libavutil/pixfmt.h' "$avutilflags"; then
+      echo '#define AV_PIX_FMT_RGB24 PIX_FMT_RGB24' >> config.h
+      echo '#define AV_PIX_FMT_YUV420P PIX_FMT_YUV420P' >> config.h
+    else avutillibs=''; fi
+  fi
+  # av_frame_alloc
+  if ! testbuild 'av_frame_alloc' 'void* x=av_frame_alloc;' 'libavutil/frame.h' "$avutilflags"; then
+    if testbuild 'avcodec_alloc_frame' 'void* x=avcodec_alloc_frame;' 'libavcodec/avcodec.h' "$avcodecflags"; then
+      echo '#define av_frame_alloc avcodec_alloc_frame' >> config.h
+    else avutillibs=''; fi
+  fi
+  # av_frame_free
+  if ! testbuild 'av_frame_free' 'void* x=av_frame_free;' 'libavutil/frame.h' "$avutilflags"; then
+    if testbuild 'avcodec_free_frame' 'void* x=avcodec_free_frame;' 'libavcodec/avcodec.h' "$avcodecflags"; then
+      echo '#define av_frame_free avcodec_free_frame' >> config.h
+    elif testbuild 'av_free' 'void* x=av_free;' 'libavutil/frame.h' "$avutilflags"; then
+      echo '#define av_frame_free av_free' >> config.h
+    else avutillibs=''; fi
+  fi
+  # av_image_get_buffer_size
+  if ! testbuild 'av_image_get_buffer_size' 'void* x=av_image_get_buffer_size;' 'libavutil/imgutils.h' "$avutilflags"; then
+    if testbuild 'avpicture_get_size' 'void* x=avpicture_get_size;' 'libavcodec/avcodec.h' "$avcodecflags"; then
+      echo '#define av_image_get_buffer_size(a,b,c,d) avpicture_get_size(a,b,c)' >> config.h
+    else avutillibs=''; fi
+  fi
+  if [ "x$avutillibs" != "x" ]; then
+    echo "AVUTIL_LIBS=${avutillibs}" >> config.mk
+    echo "AVUTIL_CFLAGS=`pkg-config --cflags libavutil`" >> config.mk
+  fi
+else
+  echo no
+fi
+
+haveresample=false
+printf 'Checking for libavresample... '
+avresamplelibs="`pkg-config --libs libavresample 2> /dev/null`"
+if [ "x$avresamplelibs" != "x" ]; then
+  echo "AVRESAMPLE_LIBS=${avresamplelibs}" >> config.mk
+  echo "AVRESAMPLE_CFLAGS=`pkg-config --cflags libavresample`" >> config.mk
+  echo yes
+  haveresample=true
+else
+  echo no
+  printf 'Checking for libswresample... '
+  swresamplelibs="`pkg-config --libs libswresample 2> /dev/null`"
+  if [ "x$swresamplelibs" != "x" ]; then
+    echo "SWRESAMPLE_LIBS=${swresamplelibs}" >> config.mk
+    echo "SWRESAMPLE_CFLAGS=`pkg-config --cflags libswresample`" >> config.mk
+    echo '#define avresample_convert swresample_convert' >> config.h
+    echo '#define avresample_alloc_context swresample_alloc_context' >> config.h
+    echo '#define avresample_open swresample_open' >> config.h
+    echo '#define avresample_free swresample_free' >> config.h
+    echo yes
+    haveresample=true
+  else
+    echo no
+  fi
+fi
+
+if "$haveresample"; then
+  testpkgconfig ao AO
+fi
+
+testpkgconfig libv4l2 LIBV4L2
+testpkgconfig x11 LIBX11
+testpkgconfig libpulse-simple PULSE
+
+fi # Skip all the GUI stuff when building on msys
+
+printf 'Checking for ncurses... '
+notfound=true
+for version in 7 6 5 4; do
+  ncurseslibs="`ncursesw${version}-config --libs 2> /dev/null || ncurses${version}-config --libs 2> /dev/null`"
+  if [ "x$ncurseslibs" != "x" ]; then
+    echo "CURSES_LIBS=${ncurseslibs}" >> config.mk
+    echo "CURSES_CFLAGS=`ncursesw${version}-config --cflags 2> /dev/null || ncurses${version}-config --cflags 2> /dev/null`" >> config.mk
+    echo yes
+    notfound=false
+    break
+  fi
+done
+if "$notfound"; then
+  echo no
+fi
+
+if testbuild 'readline' 'rl_initialize();rl_forward(1,27);return 0;' 'stdio.h readline/readline.h' '-lreadline'; then
+  echo "READLINE_LIBS=-lreadline" >> config.mk
+fi
+
+if ! testbuild 'prctl' 'prctl(PR_SET_PDEATHSIG, SIGHUP);return 0;' 'sys/prctl.h signal.h'; then
+  echo '#define NO_PRCTL 1' >> config.h
+fi
+
+if testpkgconfig glib-2.0 GLIB; then
+  echo 'LIBS+=$(GLIB_LIBS)' >> config.mk
+  echo 'CFLAGS+=$(GLIB_CFLAGS) -DHAVE_GLIB=1' >> config.mk
+fi
+
+testpkgconfig webkit2gtk-4.0 WEBKITGTK || \
+testpkgconfig webkit2gtk-3.0 WEBKITGTK
+
+testpkgconfig libwebsocket WEBSOCKET
+testpkgconfig json-c JSONC
+
+printf 'Checking if we have a working poll()... '
+echo '#include <poll.h>' > polltest.c
+echo '#include <sys/socket.h>' >> polltest.c
+echo '#include <netinet/in.h>' >> polltest.c
+echo 'int main(){' >> polltest.c
+echo 'int s=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);' >> polltest.c
+echo 'struct pollfd pfd[]={{.fd=0, .events=POLLIN, .revents=0}, {.fd=s, .events=POLLIN, .revents=0}};' >> polltest.c
+echo 'int x=poll(pfd, 2, 100);' >> polltest.c
+echo 'return x>-1 && (pfd[0].revents==POLLNVAL || pfd[1].revents==POLLNVAL);' >> polltest.c
+echo '}' >> polltest.c
+"$CC" polltest.c -o polltest > /dev/null 2> /dev/null
+if ./polltest 2> /dev/null; then
+  echo yes
+else
+  echo no
+  echo '#define POLL_BROKEN_OR_MISSING 1' >> config.h
+fi
+rm -f polltest.c polltest
+
+# TODO: handle crosscompiling better
+printf 'Checking if endianness macros work... '
+echo '#include <stdio.h>' > endiantest.c
+echo 'int main(){' >> endiantest.c
+echo '#if defined(__ORDER_LITTLE_ENDIAN__) && defined(__ORDER_BIG_ENDIAN__) && defined(__BYTE_ORDER__)' >> endiantest.c
+echo '  if(__ORDER_LITTLE_ENDIAN__==__ORDER_BIG_ENDIAN__){return 1;}' >> endiantest.c
+echo '  if(__BYTE_ORDER__!=__ORDER_LITTLE_ENDIAN__ && __BYTE_ORDER__!=__ORDER_BIG_ENDIAN__){return 1;}' >> endiantest.c
+echo '  return 0;' >> endiantest.c
+echo '#else' >> endiantest.c
+echo '  return 1;' >> endiantest.c
+echo '#endif' >> endiantest.c
+echo '}' >> endiantest.c
+"$CC" endiantest.c -o endiantest > /dev/null 2> /dev/null
+if ./endiantest 2> /dev/null; then
+  echo yes
+else
+  echo no
+  printf 'Checking endianness and writing our own macros... '
+  echo '#include <stdio.h>' > endiantest.c
+  echo 'int main(){int num=1;char* x=(char*)&num;if(x[0]){printf("CFLAGS+=-D__ORDER_LITTLE_ENDIAN__=1 -D__ORDER_BIG_ENDIAN__=2 -D__BYTE_ORDER__=1");}else{printf("CFLAGS+=-D__ORDER_LITTLE_ENDIAN__=1 -D__ORDER_BIG_ENDIAN__=2 -D__BYTE_ORDER__=2");}return 0;}' >> endiantest.c
+  "$CC" endiantest.c -o endiantest > /dev/null 2> /dev/null
+  ./endiantest >> config.mk
+  echo >> config.mk
+  echo done
+fi
+rm -f endiantest.c endiantest
+
+srcdir="`dirname "$0"`"
+if [ "." != "$srcdir" ]; then
+  sed -e "/^camplaceholder\\.gif/{s| | ${srcdir}/|g;n;s|\t|\t${srcdir}/|;}" "${srcdir}/Makefile" > Makefile
+  for dir in '' utilities/ utilities/camviewer/ utilities/cursedchat/ utilities/gtk/ utilities/irchack/ utilities/libcamera/ utilities/modbot/; do
+    mkdir -p "$dir"
+    echo "${dir}%.o: ${srcdir}/${dir}%.c" >> Makefile
+    echo '	$(CC) $(CFLAGS) -c $< -o $@' >> Makefile
+  done
+  echo "utilities/libcamera/%.o: ${srcdir}/utilities/libcamera/%.cpp" >> Makefile
+  echo '	$(CXX) $(CXXFLAGS) -c $< -o $@' >> Makefile
+  echo "SRCDIR=${srcdir}/" >> config.mk
+fi
+
+echo Done
+make confinfo

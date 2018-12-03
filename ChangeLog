@@ -1,0 +1,434 @@
+0.42:
+Improved RTMP compatibility by responding to RTMP ping requests and always starting new chunk streams with a format 0 packet.
+Added some basic support for kageshi (using the -s/--site option)
+Small bugfix regarding outgoing streams.
+Cleaned up no-longer-needed headers in client.c
+Don't bother trying to verify certificates on windows (lacking a ca bundle)
+Fixed tinychat account support.
+Call curl_easy_cleanup() at the end of the session to make sure cookies get written.
+Adjusted tinychat account support for the latest compatibility-breaking changes.
+Added workaround in the RTMP acknowledgement code for when 4 gigabytes of data has been sent and the 32bit integer rolls around to 0.
+Bugfix: exit with non-zero status if connection fails.
+Bugfix: return -1 as socket if connectto() fails.
+When getting site and channel from a URL, ignore anything after a slash after the channel name.
+Added a /quit command.
+Workaround for the new captcha mechanism.
+Bugfix: use //IGNORE to skip characters instead of freezing if the locale can't represent them.
+Use curl's curl_easy_unescape() for from_owner notices instead of doing it ourselves (contributed by Aida)
+Added some basic support for tinychat beta (-s/--site tinychat_beta)
+Automatically use tinychat_beta for beta channels.
+If joining a tinychat beta channel when the client was built without support for it (requires libwebsocket, json-c), print a warning and continue connecting on RTMP.
+Added support for the tinychat beta commands sysmsg and yut_play (start youtube video)
+modbot: use https instead of http and use the tcclient subdomain since some DNSes have trouble with underscores.
+modbot: added an option (--no-unapproved) to not add any unapproved videos to queue (videos still get approved by mods requesting or playing them manually)
+tc_client-gtk: fixed a race-condition in the builtin video player.
+tc_client-gtk: fixed some memory leaks.
+tc_client-gtk: use /quit to guarantee a clean exit.
+tc_client-gtk: fixed segfault at exit by doing camera cleanup earlier.
+tc_client-gtk: made the automatic brightness postprocessing adjustment gradual.
+tc_client-gtk: use pulseaudio for incoming audio if it's available (preferred over libao) and display the volume indicator even if no audio playback library is available.
+tc_client-gtk: added a webkitview for solving captchas without an external browser.
+irchack: don't rely on connection ID.
+0.41.1:
+Use tinychat.com instead of apl.tinychat.com (works around SSL/TLS issues on windows)
+0.41:
+Added some compatibility code for OSX.
+Enabled compiling in a directory separate from the source directory.
+Added a /disablesnapshots command to disable capturing outgoing cams for the flash client's "snapshot" feature, /enablesnapshots to re-enable.
+Fixes for compiling in a separate directory.
+Buildsystem fixes.
+More fixes for compiling in a separate directory.
+Notify if the captcha was not completed and tinychat puts our session in "lurker" mode.
+Basic support for greenroom channels.
+Added notification for receiving a valid broadcast password.
+tc_client-gtk: bugfix: don't rely on stack allocated variables for GUI callbacks.
+tc_client-gtk: install the camera placeholder animation for the 'install' target.
+tc_client-gtk: mark outgoing video keyframes as keyframes.
+tc_client-gtk: added options for making links blue and how to wrap lines.
+tc_client-gtk: added volume indicators.
+tc_client-gtk: handle failure to connect to pulseaudio more gracefully.
+tc_client-gtk: rewrote the audio mixer.
+tc_client-gtk: display the channel name in the window title.
+tc_client-gtk: added a setting to control /disablesnapshots and /enablesnapshots.
+tc_client-gtk: added support for integrated youtube videos.
+tc_client-gtk: compatibility with older versions of libavformat.
+tc_client-gtk: build fixes for windows.
+tc_client-gtk: tweaks for windows compatibility.
+tc_client-gtk: bugfix: hiding your own camera caused a segfault.
+tc_client-gtk: added an icon to mark moderators in the user list.
+tc_client-gtk: disable the input field and the broadcast menu when in "lurker" mode.
+tc_client-gtk: added an option to hide join/quit/nickname notifications.
+tc_client-gtk: made the user list sorted.
+tc_client-gtk: added support for viewing and approving greenroom cameras.
+tc_client-gtk: added an option to show the greenroom menu even when you're not a moderator.
+tc_client-gtk: implemented broadcasting to greenroom while awaiting approval.
+tc_client-gtk: made camera scaling keep the aspect ratio.
+dist/appimage.sh: fix audio in appimages by building ffmpeg with support for nellymoser and speex, and depending on the system's libao and libpulse instead of including it in the appimage.
+libcamera(escapi): handle failure to open camera more gracefully.
+irchack: pass along "<user> cammed up" notifications.
+configure: skip looking for libraries used for the GUI applications when building on msys.
+dist/w32.sh: bundle Adwaita icons and gdk-pixbuf loaders.
+dist/w32.sh: fixed the path for the escapi library.
+0.40:
+Moved the backward compatibility code for avcodec_{send,receive}_{frame,packet} into a separate source file to avoid pulling libavcodec into utilities that don't use it.
+Improved the RTMP acknowledgement code: counting the format 3 headers which were previously skipped, setting a more reasonable acknowledgement interval at startup and giving the server some margin before dropping outgoing video packets.
+Interpret the "from_owner" subcommand "_close" to tell if our media stream was closed.
+Fixed a bug that caused tc_client to not know the nickname if the chosen one wasn't available at startup, manifesting as broadcasting not working unless the initial nickname was free.
+Added support for sending audio packets with "/audio <length>", followed by the binary data.
+Added scripts for generating binary packages on GNU/Linux and windows.
+tc_client-gtk: merged camera_remove() and camera_removebynick() into a single function, merged the deallocation of camera data into camera_free()
+tc_client-gtk: moved the postprocessing code into its own source file.
+tc_client-gtk: added greenscreen postprocessor.
+tc_client-gtk: added GTK+2 compatibility code related to the greenscreen postprocessor.
+tc_client-gtk: changed camera input for broadcasting from using a thread to using g_timeout.
+tc_client-gtk: use the camera's own copy of its ID for g_timeout_add() rather than what camera_new() was called with. And in configure, include libavutil/mem.h if we fall back on av_freep()
+tc_client-gtk: cleaned up leftover windows compatibility code that is no longer necessary.
+tc_client-gtk: changed the greenscreen postprocessor to use libcamera for the background, allowing you to use either another camera or an image through the virtual "Image" camera as background.
+tc_client-gtk: turn URLs mentioned in chat into clickable links.
+tc_client-gtk: reimplemented automatic scrolling using a state to keep track of whether the GtkTextView is scrolled to the bottom and using gtk_text_view_scroll_to_mark() to scroll.
+tc_client-gtk: when keeping HTTP cookies, use separate cookies per account and one for no account to avoid serverside issues.
+tc_client-gtk: stop trying to send video data if our media stream was closed.
+tc_client-gtk: added an option to pick the greenscreen "green" color from the camera.
+tc_client-gtk: added a compatibility macro for versions of gdk-pixbuf lacking gdk_pixbuf_read_pixels()
+tc_client-gtk: fixed resampling of incoming audio.
+tc_client-gtk: added GTK+2 compatibility code related to the greenscreen camera color picker.
+tc_client-gtk: added compatibility code for windows' lack of pipe()
+tc_client-gtk: added workaround for libao not handling the "client_name" option on windows.
+tc_client-gtk: added support for broadcasting audio.
+tc_client-gtk: fixed some warnings found with G_DEBUG="fatal-criticals".
+tc_client-gtk: quit if the captcha window is closed.
+tc_client-gtk: make scrolling with page up and page down work even if focus is on the input field.
+tc_client-gtk: bugfix: close the camera device when cancelling cam selection.
+tc_client-gtk: moved some GUI code into gui.c, including all of the GUI initialization.
+tc_client-gtk: fixed printf formatting.
+tc_client-gtk: fixed building without pulseaudio.
+tc_client-gtk: moved some non-GUI code back.
+tc_client-gtk and camviewer: updated to libavcodec's avcodec_{send,receive}_{frame,packet} API.
+camviewer: removed the old, buggy audio code.
+libcamera: added support for a virtual X11 camera.
+libcamera(v4l2): cache the frame and if there is no data to be read, return the cache instead of blocking.
+libcamera(escapi): fixed a bug that broke cams on windows unless you only use the first one.
+testbuilds.sh: adjusted for configure no longer accepting --enable-mic (since it's no longer experimental)
+0.39:
+Added a /closecam command to stop receiving a cam stream.
+Use uintX_t for endianness functions instead of unsigned long*x int.
+Implemented RTMP acknowledgement on outgoing data, with dropping video packets if necessary.
+Fixed RTMP extended timestamps (read extended timestamps for subsequent format 3 chunks with the same chunk ID)
+Reorganized configure, changing many of the version comparisons for API compatibility into direct checks for availability.
+Added missing generated files to the clean target.
+bugfix: brought back announcing when a cam stream ends.
+bugfix: take cflags into account when performing API tests in configure.
+bugfix: tc_client-gtk: when rearranging cameras, don't try to remove it from the parent container if the camera doesn't have one yet.
+bugfix: fixed compatibility code that had stopped working over time as other code changed.
+modbot: only use youtube-dl's 'ytsearch:' for --get-id, and only if it doesn't appear to be an ID already.
+tc_client-gtk: handle only one sendmessage event at a time, and don't send empty lines.
+tc_client-gtk: added postprocessing options for cams upon right-click, starting with brightness adjustment.
+tc_client-gtk: moved encoding out of the cam thread, allowing postprocessing to be applied to the broadcasted frame.
+tc_client-gtk: added horizontal and vertical flip as postprocessing options.
+tc_client-gtk: reallocate frame when camera input size changes.
+tc_client-gtk: if we failed to open the camera, just give a grey screen.
+tc_client-gtk: made the settings accessible from the start window (previously only accessible from the main window, after already joining a channel)
+tc_client-gtk: added an option to use the --cookies parameter of the core to keep/reuse HTTP cookies.
+tc_client-gtk: when automatically opening cameras is disabled don't open the ones that are active when joining either, and notify when someone cams up.
+tc_client-gtk: added menu item to hide a camera upon right-click.
+tc_client-gtk: limit the camera preview to 640 by 480, scaling down if the input is larger.
+tc_client-gtk: when resizing the window, resize the camera pane before the chat pane.
+tc_client-gtk: break the cameras into two or more rows if it means they can be larger and still fit.
+tc_client-gtk: un-highlight selected PM tabs even if the sender has left.
+tc_client-gtk: prevent new PM tabs from stopping automatic scrolling.
+tc_client-gtk: if the server disconnects, print the notification and stop any outgoing broadcast.
+tc_client-gtk: optimized incoming audio/video by checking for "Video:" and "Audio:" first when handling lines from the tc_client core.
+tc_client-gtk: added a placeholder animation for cameras, shown for audio-only streams and streams that haven't sent any video data yet.
+tc_client-gtk: added GTK+2 compatibility code for the incompatibilities that have been introduced over time.
+tc_client-gtk: print the topic and /whois responses to the GUI.
+tc_client-gtk and camviewer: fixed compatibility with newer libavutil.
+tc_client-gtk and camviewer: added compatibility fallbacks for av_image_get_buffer_size() and av_packet_unref()
+tc_client-gtk and camviewer: specify a scaling algorithm for libswscale (mandatory for older versions of libswscale)
+tc_client-gtk and camviewer: don't try to play audio if the resampling failed (experimental mic support)
+libcamera(v4l2): if we failed to read the frame, give grey instead.
+irchack: fixed the order of messages around joining a channel (should fix compatibility with IRC clients a bit pickier than irssi)
+testbuilds.sh: adapted to the changes in configure and made it check if builds succeed without -Werror rather than unforgivingly marking it as broken, instead marking it as working but with warnings.
+0.38:
+Handle multi-line messages.
+Added option --hexcolors to print hex color codes instead of ANSI color escape codes.
+Added compatibility code for systems lacking strndup() and made configure test for that and dprintf()
+Always use format 0 (all fields included) for the first RTMP packet.
+Added option --cookies <file> to keep and reuse tinychat HTTP cookies, resulting in having to solve captchas less often.
+Makefile: added missing sourcefiles for the tarball target.
+Makefile: added some foolproofing for building on windows.
+tc_client-gtk: if HOME is not set use "." instead.
+tc_client-gtk: windows compat: don't try to run empty commands.
+tc_client-gtk: make timestamps gray and nicknames bold.
+tc_client-gtk: added option to change font size in the chat.
+tc_client-gtk: initialize audio samples of new cams to 0 (experimental audio support)
+tc_client-gtk: windows compat: do /mbs handling on a duplicated buffer to avoid cutting off the displayed message.
+tc_client-gtk: added input history (up/down arrows)
+tc_client-gtk: set a default position of the cam and nickname list pane handles.
+tc_client-gtk: use --hexcolors to show the full range of colors.
+tc_client-gtk: keep cam pixel buffers on the heap instead of the stack, fixes glitchyness when resizing.
+tc_client-gtk: fixed a memory leak.
+tc_client-gtk: format timestamps in logs.
+modbot: use youtube-dl's 'ytsearch:' instead of '--default-search auto', fixes issues with search terms that include slashes.
+modbot: if requesting by URL, skip to the ID.
+modbot: when getting information about a video, make up to 3 attempts before giving up (workaround for youtube/youtube-dl issues)
+configure: check for multiple versions of ncurses.
+0.37:
+Reimplemented announcement of moderators.
+Reimplemented announcement of people cammed up when joining.
+Minor build fixes.
+libcamera: added support for a virtual "Image" camera.
+tc_client-gtk: added workarounds for the camera code (with the platform-agnostic "Image" camera) to work on windows.
+tc_client-gtk: made automatically opening cam streams an option which can be disabled.
+libcamera: fixed compiler warnings.
+libcamera: added support for cameras on windows through the ESCAPI library.
+testbuilds.sh: added a warning to prevent users from trying to use it to test their build, which is not what it does.
+configure/Makefile: added a summary of utilities and features enabled/available at the end of configure (or manually with 'make confinfo')
+modbot: if nothing is playing when a video gets approved, play it even if it's not first in the queue.
+0.36:
+Implemented /whois <nick/ID> to check someone's username.
+Changed the /whois output to be more human-readable in cases where the user isn't logged in.
+Adjusted for tinychat's protocol changes.
+modbot: take time offset into account for the duration of videos.
+modbot: added support for /mbpa (pause) and /mbpl (play/resume)
+modbot: check that videos can be embedded (for the flash client) before adding them to the queue.
+modbot: when skipping an unapproved video after 2 minutes, find the next approved video when it's time to play it (in case the queue has changed)
+irchack: changed WHOIS to use the new /whois command instead of /userinfo (which tinychat retired)
+tc_client-gtk: added an option to automatically cam down when someone joins ("Shy mode")
+0.35:
+Adjusted for tinychat authentication changes (both for joining the channel and to use moderator accounts)
+Send account username in AMF0 "connect" command at startup regardless of whether we are modded or not, as is now required for non-mod accounts (contributed by Jade)
+If an RTMP chunk already has a buffer allocated when a packet sets the length, free it and start over.
+Added support for captchas.
+irchack: added a check for whether tc_client is installed or should be run from the source directory (should have been added along with the 'install' target)
+irchack: respond to pings while waiting for the captcha.
+tc_client-gtk and camviewer: added support for captchas.
+tc_client-gtk: made the pane handles between cams, chat, and userlist wide (contributed by David Kreuter)
+tc_client-gtk: changed how pane handles are set to be wide to be compatible with older gtk+ versions.
+tc_client-gtk: flush logs after every write to avoid loss of data.
+irchack: added support for captchas.
+cursedchat: added support for captchas.
+modbot: added support for youtube links with time offsets.
+0.34:
+Fixed memory alignment in rtmp/amf code (for CPU architectures that are picky about it)
+Print version info when called with -v/--version (contributed by Jade)
+Flush stdout after printing unknown RTMP types, and return upon <1 reads in b_read.
+tc_client-gtk: fixed windows compatibility (w32_runcmd and strndup)
+tc_client-gtk: added a camera selection (and preview) window when starting to broadcast.
+tc_client-gtk: fixed gtk+2 compatibility (differences in gtk_combo_box API)
+tc_client-gtk and camviewer: added some compatibility macros for older libav versions.
+tc_client-gtk and camviewer: added an abstraction library (libcamera) for cam access.
+modbot: added an option (--disable-lists) to disable playlist requests, instead only the first video linked to will be added to the queue.
+modbot: make a note about skipped videos (!skip) not being marked as bad, and list the skipped videos to make it easier if they were meant to be marked as bad.
+modbot: give feedback for !wrongrequest, and if the user is a mod and the dropped video was the last one approved, remove it from goodvids since it was probably requested (and automatically approved) by accident.
+0.33:
+Fixed the /forgive command (by name) which would previously fail unless the target was found in the first 'banlist' AMF0 packet.
+Added a /version remote command to give the client name and version number, making /userinfo conform to the flash client's behaviour instead, and send the response with the two separate privacy field options 'n' and 'b'.
+modbot: fixed finding the duration of videos longer than 59 minutes (conversion from hh:mm:ss format to seconds)
+modbot: added a !queue <position> command to get information about the video in the given position in the queue.
+tc_client-gtk: redesigned the startup window to better support frequenting multiple channels.
+tc_client-gtk and camviewer: added compatibility code to build on windows (for now the tc_client core still needs to be built with cygwin for windows)
+tc_client-gtk: made the options for notifications and youtube videos work for windows.
+tc_client-gtk: if there are no saved channels, show a placeholder text instructing how to add a channel.
+tc_client-gtk: added tabs for PMs.
+tc_client-gtk: put the GtkTextViews for PM tabs in GtkScrolledWindows for compatibility with GTK+2.
+0.32:
+Added an 'install' make target, adjusted utilities to run tc_client from PATH unless they were run from the build directory (i.e. './<executable>')
+Provide feedback on the /ban command.
+irchack: send passwords by pipe, not argument.
+tc_client-gtk: ignore anything after the offset in /mbs commands.
+tc_client-gtk: when camming down, remove the glib event source for our cam stream.
+tc_client-gtk: send the cam stream to tc_client from the main process instead of from the cam child process to avoid potential overlap of writes.
+modbot: for !badvid, only play the next video if the one we marked as bad was the currently playing video.
+modbot: make sure we don't skip over an unapproved video in queue before the 2 minutes are up.
+modbot: added a !nowplaying command to get the title of the current video.
+0.31:
+Fixed the issue where messages would show up on kanji on some platforms (a proper fix instead of the earlier android & apple workaround)
+When a message is sent with a privacy field, send it once with 'b' (broadcasting) and once with 'n' (not-broadcasting)
+tc_client-gtk: added a margin to the autoscroll code, which should make scrolling work better when resizing the window or panes.
+tc_client-gtk: copied and adjusted the code for keeping track of our own nickname from cursedchat.
+tc_client-gtk and camviewer: fixed the code for fallback on libswresample.
+modbot: added a little note about the video being pre-approved when requesting an already approved video.
+modbot: include the video title at the end of the /mbs command, which doesn't affect the flash client but lets e.g. tc_client users know which video is being played.
+cursedchat: copied and adjusted the code for keeping track of our own text color from tc_client-gtk.
+irchack: translate topic and ban/banlist commands.
+0.30:
+Adjusted the configure script for compatibility with shells that still interpret escaped characters in single-quotes (contributed by Jade)
+Added a /topic command to set the channel topic.
+tc_client-gtk: allow scrollbars around the cams, otherwise resizing the window to a smaller size will be blocked.
+tc_client-gtk: added optional notification sounds and a settings window to configure it.
+tc_client-gtk: added optional logging.
+tc_client-gtk: added a startup dialog instead of requiring commandline arguments.
+tc_client-gtk: display the color of our outgoing messages.
+tc_client-gtk: added an option to run a command for youtube videos being played.
+cursedchat: keep track of our own nickname and print that when we send a message instead of "You:" (contributed by Pamela)
+cursedchat: added timestamps for outgoing messages.
+0.29:
+Added testbuilds.sh to automatically try building the project with different configurations to verify that the latest changes did not break it in some cases.
+Check for endianness macros in the configure script and if they are missing/broken, test endianness and add our own macros.
+If getkey() returns null, print a descriptive message and exit (instead of segfaulting)
+Added optional code to record incoming RTMP packets, add -DRTMP_DEBUG=1 to CFLAGS to enable.
+Added compatibility hacks for apple systems (building onto android ones)
+Handle /help without sending it as a message.
+camviewer: create a new pipe for showing our own cam instead of mixing it in with tc_client's output.
+camviewer: remove associated cameras when a user leaves (in case there was no explicit message about ending the stream)
+camviewer: support older versions of libav which had parts of libavutil in libavcore instead.
+Forked camviewer into tc_client-gtk to keep camviewer as a simpler demo while tc_client-gtk develops into a more complete client interface.
+tc_client-gtk: added a menubar and moved the broadcasting option to there instead of as a button.
+tc_client-gtk: scale cams to fit/fill into the window.
+tc_client-gtk: added a text view for chat, an input field and a user list, switched to a glade file instead of building the GUI manually from code.
+modbot: added a !syncvid command to synchronize video position (or to see a video that was started while having youtube videos disabled in the flash client)
+0.28:
+Delete streams when they stop, to allow reusing stream IDs.
+Added a /camdown command.
+camviewer: worked around the cam streaming issue.
+camviewer: switched to libavresample instead of libswresample (when available)
+modbot: added a !modstats command to see how often there are moderators present.
+modbot: moved the help-text into an HTML document.
+modbot: added a -v/--verbose option to print/log all incoming messages.
+modbot: pass on error messages from youtube-dl when requesting a video fails.
+cursedchat: added history (up/down arrows)
+0.27:
+Added some more compatibility hacks for android.
+Added support for video broadcasting (adding /camup and /video <length> followed by the encoded data for each frame)
+crossbuild.sh: build ncurses and readline for the target platform.
+cursedchat: disable readline's match-listing, which does not work well with the curses interface.
+cursedchat: made tab completion work with nicknames.
+0.26:
+modbot: fixed a segfault when trying to skip more videos than what's in the queue.
+modbot: fixed a segfault when receiving a manual /mbc command but no video is playing.
+cursedchat: added PM buffers/windows which can be switched between with "/pm <name>", just "/pm" to return to the channel buffer.
+cursedchat: added /help output specific to cursedchat, in addition to tc_client's output.
+camviewer: added an experimental audio mixer.
+0.25:
+Handle short reads in the RTMP headers too.
+Added the option -c/--color <number> to pick color instead of getting a random color at startup (contributed by Pamela)
+cursedchat: use default colors (for background in particular)
+cursedchat: added scrolling.
+modbot: fixed singular form of 'videos' in !queue response.
+modbot: update 'requested' (for !requestedby) also when a video is played manually.
+camviewer: added basic mic code (mixing is still missing so it is disabled by default, to enable, configure with environment variable ENABLE_MIC set to 1)
+0.24:
+Fixed endianness of RTMP set-chunk-size handling.
+modbot: fixed a bug where '!wrongrequest' would claim no request was found when (and only when) the request was last in queue.
+modbot: added the options -d/--daemon and -l/--log plus better handling of -h/--help.
+modbot: moved and changed the note about '!approve entire queue' overuse to a note about making sure none of the videos were inappropriate in the "Queue approved" message.
+camviewer: fixed a bug introduced in 0.23 where audio data was handled improperly, resulting in audio/video data being missed.
+camviewer: ignore 0-byte audio/video packets.
+0.23:
+Added the moderator commands /mute and /push2talk (contributed by Jade)
+Set tc_client as a dependency of utils.
+Implemented RTMP message type 1 (set chunk size)
+Writing audio data the same way video data is written.
+camviewer: fixed a bug where joining a channel where no one is on cam resulted in trying to view the cam for "", leading to an empty GtkImage in the row of cams. 
+camviewer: added labels under each image with people's nicknames.
+Added a basic ncurses utility called cursedchat.
+modbot: for manual /mbc, remove the video from goodvids.
+modbot: fixed a bug that caused a segfault when using !badvid if nothing was playing.
+modbot: added a response for !wrongrequest without an argument when no request is found.
+modbot: renamed !whorequested to !requestedby for the sake of immature minds.
+0.22:
+Cleaned up media.c/h which I forgot to clean up before releasing 0.21.
+Detect when someone cams down.
+Added a /names command to list who is online.
+camviewer: fall back to GTK+2 if GTK+3 is not available.
+camviewer: show multiple cameras (cams to view are now picked up from who is on cam when joining and whenever someone cams up instead of from argv[1])
+modbot: list at most 5 not yet approved videos for !queue to avoid sending messages which are too large.
+modbot: fixed a bug where removing a non-approved video from queue using !wrongrequest and that video was the first in queue, the second video in queue wouldn't be played.
+modbot: added !whorequested to see who requested the currently playing video.
+0.21:
+Renamed streamids to chunkids to better match the specification.
+Added a /close command for mods to close cam/mic streams.
+Added /ban, /banlist and /forgive commands.
+Added a /opencam command to receive cam data, and the 'camviewer' utility to handle the cam data (depends on libavcodec/libswscale and gtk+ 3.x), mostly as a reference.
+Do not echo while entering account password at runtime.
+Announce when someone cams up, and list who is on cam when joining.
+modbot: added !wrongrequest to undo a request.
+modbot: allow entering account password at runtime and without echo.
+modbot: added !skip/!skip <number> to skip videos in the queue.
+irchack: translate between /userinfo and WHOIS.
+0.20:
+Fixed amf0 reading of numbers (type 0)
+Added support for sending format 0 RTMP packets (which include the msgid field)
+Handle "/userinfo $request", responding with the account name if logged in and otherwise "tc_client" (which is not a valid tinychat account name but the flash client will show it anyway)
+Added a /priv command, mostly for use by modbot.
+Improved the way RTMP payloads are read from the stream.
+modbot: when someone joins, send a /mbs (start video) command with the current position in the video, but only to that user.
+0.19:
+Got unicode characters working, as it turns out tinychat doesn't use ISO-8859-1 but UTF-16 (which shares character codes with ISO-8859-1 below 256)
+Enable keepalive on the TCP socket.
+irchack: end session upon bad reads from tc_client.
+modbot: handle playlist links properly (youtube-dl gives us a newline-separated list of IDs)
+modbot: added '!approve entire queue', mostly for playlists.
+modbot: allow searching for ID also in !badvid
+0.18:
+This release only affects modbot:
+Switched to using youtube-dl for getting IDs (including proper searching)
+Fixed and clarified the !help text.
+When a video is next to be played and has not been approved for 2 minutes, move the first approved video to the front instead of moving the first video to the back.
+Added '!approve next' which approves the first thing in queue that is not yet approved.
+Added !time to get the amount of time left for the current video (mostly for debugging)
+Handle /mbsk (seeking)
+0.17:
+irchack: translate tc_client's "No such nick" to IRC's 401 (No such nick/channel)
+modbot: mark manually started videos as playing.
+modbot: fixed a memory error in list_del()
+Added a configure script to better handle platform differences (primarily that some systems need to link to libiconv, for others it is provided by libc)
+crossbuild.sh: build libiconv if necessary.
+modbot: added more responses to !approve to make it less confusing.
+modbot: pass -- to youtube-dl before the ID to avoid issues when IDs start with -
+0.16:
+Get and print the channel topic (contributed by Jade)
+irchack: fork and keep accepting connections.
+irchack: translate IRC's "\x01ACTION stuff\x01" (/me) into "*stuff*" for tc_client.
+modbot: add a 100ms delay between the lines of !help to prevent throttling.
+modbot: handle manual /mbs and /mbc commands (remove from queue, mark as good for /mbs)
+Added a /help command to list commands handled by tc_client at runtime.
+irchack: use USER and PASS IRC commands to get the tinychat account to login as.
+0.15:
+Fixed a bug introduced with the new argument handling in 0.14
+Prompt for password if a username is given with -u/--user but no password (-p/--pass) is given.
+Turn account names lowercase to comply with tinychat's quirks.
+Handle networking being down at startup more graciously.
+Added modbot.c, a bot that deals with playing videos.
+0.14:
+Use iconv to deal with tinychat's ISO-8859-1 instead of the wcs functions.
+irchack: only listen on 127.0.0.1 (localhost)
+Added -u/--user and -p/--pass options to log into tinychat accounts.
+0.13:
+Check the validity of nicknames before switching.
+Roll our own endianness conversion functions since the ones provided by libc are not standardized.
+0.12:
+Wrote a sender for the RTMP code and changed the AMF0 writer to use it, plus working directly with the rtmp struct instead of an intermediate amfmsg struct.
+Added handling of moderators turning into regular users, or 'deop' (contributed by Jade)
+Handle new nicknames being in use when using /nick, and thus failing (contributed by Jade)
+0.11:
+Rewrote the RTMP code to read from the socket instead of from a buffer, this will prevent messages from being dropped when they are larger than the buffer.
+0.10:
+irchack: stay connected if joining a channel fails and tell the IRC client if a channel password is required.
+irchack: keep listening for connections and accept the next after a session ends.
+0.9:
+Added compatibility workarounds for android.
+Keep track of who is a moderator. (contributed by Jade)
+Added crossbuild.sh script to automatically cross-compile tc_client and curl (dependency) for the given host-triplet.
+0.8:
+irchack: convert tc_client's ANSI codes to IRC color codes.
+irchack: convert IRC color codes to '/color <number>' commands for tc_client.
+Made it possible to turn off/on colors being displayed with '/color off' and '/color on'
+0.7:
+Added command handling (/color <number>, /colors, /nick <newnick>, and adding the privacy field for /msg)
+0.6:
+Fixed a bug in the ID list that kept IDs from being removed correctly.
+Show colors using ANSI escape codes.
+0.5:
+Fixed a bug in irchack.c that sent the JOIN confirmation to the wrong file descriptor.
+Avoid sending empty lines.
+Handle messages related to getting kicked out/banned from a channel. (contributed by Jade)
+0.4:
+Adjustments for portability: nested functions are a GCC extension and should not be used, include headers needed on other systems.
+Use memcpy in some places instead of *x=y and x=*y to avoid alignment issues.
+0.3:
+Handle 'joins', 'join', 'nick' and 'quit' messages from the server (contributed by Jade)
+Moved the AMF message writing functions into a separate source file.
+Added irchack.c, a simple application that acts as an IRC server mirroring a tinychat channel using tc_client.
+0.2:
+Added support for non-ascii characters (sent as ISO-8859-1 to/from the server)

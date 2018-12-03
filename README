@@ -1,0 +1,48 @@
+tc_client is a very primitive application, it doesn't implement a user interface on its own,
+you could use it stand-alone but it will be ugly and if someone says something while you are typing a message your input-line will get cut off.
+Better interfaces can be implemented as wrappers that launch tc_client with stdin and stdout as pipes. See the bottom of this document for some included applications that run on top of tc_client.
+
+Commands supported by tc_client:
+/msg <to> <msg> = send a PM, incoming PMs look similar
+/color <0-15>   = set the color of your outgoing messages
+/color <on/off> = enable/disable showing colors with ANSI escapes
+/color          = see your current color
+/colors         = list the available colors
+/nick <newnick> = change nickname
+/opencam <nick> = see someone's cam/mic (Warning: writes binary data to stdout)
+/closecam <nick> = stop receiving someone's cam stream
+/close <nick>   = close someone's cam/mic stream (as a mod)
+/ban <nick>     = ban someone
+/banlist        = list who is banned
+/forgive <nick/ID> = unban someone
+/camup          = open an audio/video stream for broadcasting your video
+/video <length> = send a <length> bytes long encoded frame, send the frame data after this line
+/audio <length> = send a <length> bytes long encoded frame, send the frame data after this line
+/camdown        = close the audio/video stream
+/topic <topic>  = set the channel topic
+/disablesnapshots = disable flash client's snapshots of our stream
+/enablesnapshots = re-enable flash client's snapshots of our stream
+/allow <nick>   = allow user to broadcast (as a mod)
+/getnick <ID>   = get nickname from connection ID
+/help           = list these commands at runtime
+
+Missing features:
+broadcasting support for channels which require a password to broadcast
+
+Current commands sent by the TC servers that tc_client doesn't know how to handle:
+notice (some, notice is used for many functions)
+joinsdone
+pros
+
+Some notes about the code:
+In tc_client (and the utilities) we often use &string[offset], which can be confusing to some.
+We use it to get the part of the string after the first <offset> characters, e.g. we have a string that says "Connection ID: 562", we do &string[15] to get only the "562" part.
+The order of operations is as follows: &(string[offset])
+&string[offset] is equivalent to string+offset
+
+Included applications that rely on tc_client (type 'make utils' to build):
+*irchack       = a minimal IRC server that translates between IRC and tc_client's commands
+*modbot        = a bot that handles youtube video requests with a queue and an approval system to keep inappropriate videos from being played. Supports the following commands: !help, !request, !queue (show queue status), for mods only: !playnext (try playing next in queue without marking it yet), !approve, !badvid (Note: modbot depends on youtube-dl to find out the length of videos)
+*camviewer     = an example application for viewing cam streams
+*cursedchat    = a curses chat interface
+*tc_client-gtk = a more complete and full-featured interface based on camviewer
